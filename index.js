@@ -14,3 +14,76 @@ const pool = new Pool({
   password: 'ds564', // senha do banco
   port: 5432, // Porta padrão do PostgreSQL
 });
+
+
+app.get('/gossips', async (req, res)=> {
+    try {
+        const resultado = await pool.query('SELECT * FROM gossips');
+        res.json({
+            total: resultado.rowCount,
+            gossips: resultado.rows,
+        });
+      } catch (error) {
+        console.error('Erro ao obter os fofoqueiros:', error);
+        res.status(500).send('Erro ao obter os fofoqueiros');
+      }
+})
+
+app.post('/gossips', async (req, res) => {
+    try {
+      const { nome, level_of_gossip, elenco, hp, popularity } = req.body;
+      await pool.query('INSERT INTO gossips (nome, level_of_gossip, elenco, hp, popularity) VALUES ($1, $2, $3, $4, $5)', [nome, level_of_gossip, elenco, hp, popularity]);
+      res.status(201).send({ mensagem: 'Fofoqueiro adicionado com sucesso'});
+    } catch (error) {
+      console.error('Erro ao criar um fofoqueiro:', error);
+      res.status(500).send('Erro ao criar um fofoqueiro');
+    }
+  });
+
+  app.put('/gossips/:id', async (req, res) => {
+    try {
+      const { id } = req.params;
+      const {nome, level_of_gossip, elenco, hp, popularity} = req.body;
+      await pool.query('UPDATE gossips SET nome = $1, level_of_gossip =$2, elenco = $3, hp = $4, popularity = $5 WHERE id = $6', [nome, level_of_gossip, elenco, hp, popularity, id]);
+      res.status(200).send({ mensagem: 'Fofoqueiro atualizado com sucesso'});
+    } catch (error) {
+      console.error('Erro ao atualizar fofoqueiro:', error);
+      res.status(500).send('Erro ao atualizar fofoqueiro');
+    }
+  });
+
+
+  app.delete('/usuario/:id', async (req, res) => {
+    try {
+      const { id } = req.params;
+      await pool.query('DELETE FROM usuario WHERE id = $1', [id]);
+      res.status(200).send({ mensagem: 'Usuário excluído com sucesso'});
+    } catch (error) {
+      console.error('Erro ao excluir usuário:', error);
+      res.status(500).send('Erro ao excluir usuário');
+    }
+  });
+
+  app.get('/usuario/:id', async (req, res) => {
+    try {
+      const { id } = req.params;
+      const result = await pool.query('SELECT * FROM usuario WHERE id = $1', [id]);
+      if (result.rowCount === 0) {
+        res.status(404).send({ mensagem: 'Usuário não encontrado' });
+      } else {
+        res.json(result.rows[0]);
+      }
+    } catch (error) {
+      console.error('Erro ao obter usuário por ID:', error);
+      res.status(500).send('Erro ao obter usuário por ID');
+    }
+  });
+  
+
+app.get('/',(req, res) =>{
+    res.send('Servidor funcionando')
+})
+
+app.listen(port, ()=>{
+    console.log(`Servidor rodando na porta ${port}`)
+})
