@@ -15,7 +15,7 @@ const pool = new Pool({
   port: 5432, // Porta padrão do PostgreSQL
 });
 
-
+//Rota dos fofoqueiros
 app.get('/gossips', async (req, res) => {
   try {
     const resultado = await pool.query('SELECT * FROM gossips');
@@ -29,6 +29,19 @@ app.get('/gossips', async (req, res) => {
   }
 })
 
+//Rota de filtrar os fofoqueiros pelo nome
+app.get("/gossips", (req, res) => {
+  const nome = req.query.nome;
+  const query = `SELECT * FROM heroes WHERE nome LIKE $1`;
+  pool.query(query, [`%${nome}%`], (err, results) => {
+     if (err) {
+       throw err;
+     }
+     res.status(200).json(results.rows);
+  });
+ });
+
+//Rota de criar os fofoqueiros
 app.post('/gossips', async (req, res) => {
   try {
     const { nome, level_of_gossip, elenco, hp, popularity } = req.body;
@@ -40,6 +53,7 @@ app.post('/gossips', async (req, res) => {
   }
 });
 
+//Rota de editar os fofoqueiros
 app.put('/gossips/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -52,7 +66,7 @@ app.put('/gossips/:id', async (req, res) => {
   }
 });
 
-
+//Rota de deletar os fofoqueiros
 app.delete('/gossips/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -64,6 +78,7 @@ app.delete('/gossips/:id', async (req, res) => {
   }
 });
 
+//Rota dos fofoqueiros por id
 app.get('/gossips/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -79,7 +94,8 @@ app.get('/gossips/:id', async (req, res) => {
   }
 });
 
-app.get('/battle', async (req, res) => {
+//Rota de batalha
+app.post('/battle', async (req, res) => {
   const { gossips1_id, gossips2_id } = req.body;
 
   try {
@@ -99,7 +115,7 @@ app.get('/battle', async (req, res) => {
   }
 });
 
-// Função de exemplo para determinar o vencedor
+// Função para saber o vencedor 
 async function battle(gossips1_id, gossips2_id) {
   // Aqui você pode implementar sua lógica de batalha
   // Por exemplo, determinar o vencedor com base em atributos
@@ -125,6 +141,19 @@ async function battle(gossips1_id, gossips2_id) {
  battle(gossips1_id, gossips2_id)
   .then(battleResult => console.log('Batalha registrada:', battleResult))
   .catch(err => console.error('Erro ao registrar batalha:', err));
+
+  //Rota de todas asbatalhas
+  router.get('/battles', async (req, res) => {
+    try {
+       const result = await pool.query('SELECT * FROM battles');
+       res.status(200).json(result.rows);
+    } catch (err) {
+       console.error(err);
+       res.status(500).json({ error: 'Erro ao buscar o histórico de batalhas' });
+    }
+   });
+   
+  
 
 app.get('/', (req, res) => {
   res.send('Servidor funcionando')
