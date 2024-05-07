@@ -142,7 +142,7 @@ async function battle(gossips1_id, gossips2_id) {
   .then(battleResult => console.log('Batalha registrada:', battleResult))
   .catch(err => console.error('Erro ao registrar batalha:', err));
 
-  //Rota de todas asbatalhas
+  //Rota de todas as batalhas
   router.get('/battles', async (req, res) => {
     try {
        const result = await pool.query('SELECT * FROM battles');
@@ -152,8 +152,29 @@ async function battle(gossips1_id, gossips2_id) {
        res.status(500).json({ error: 'Erro ao buscar o histórico de batalhas' });
     }
    });
+
+   app.get('/battles/detailed', async (req, res) => {
+    try {
+       const result = await pool.query(`
+         SELECT battles.id, battles.gossips1_id, battles.gossips2_id, battles.winner_id,
+         gossips1_id.nome AS hero1_nome, gossips1_id.level_of_gossip AS gossips1_id_level_of_gossip, gossips1_id.elenco AS  gossips1_id_elenco, gossips1_id.hp AS  gossips1_id_hp,  gossips1_id.popularity AS  gossips1_id_popularity,
+         gossips2_id.nome AS hero2_nome, gossips2_id.level_of_gossip AS gossips2_id_level_of_gossip, gossips2_id.elenco AS  gossips2_id_elenco, gossips2_id.hp AS gossips2_id_hp, gossips2_id.popularity AS gossips2_id_popularity
+         FROM battles
+         JOIN gossips1_id ON battles.gossips1_id = gossips1_id.id
+         JOIN gossips2_id AS gossips2_id ON battles.gossips2_id = gossips2_id.id
+         ORDER BY battles.id ASC;
+       `);
    
-  
+       res.status(200).json(result.rows);
+    } catch (error) {
+       console.error(error);
+       res.status(500).json({ error: 'Erro ao buscar o histórico de batalhas' });
+    }
+   });
+   
+   app.listen(port, () => {
+    console.log(`Servidor rodando na porta ${port}`);
+   });
 
 app.get('/', (req, res) => {
   res.send('Servidor funcionando')
