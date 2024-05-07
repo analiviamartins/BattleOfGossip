@@ -53,29 +53,29 @@ app.post('/gossips', async (req, res) => {
   });
 
 
-  app.delete('/usuario/:id', async (req, res) => {
+  app.delete('/gossips/:id', async (req, res) => {
     try {
       const { id } = req.params;
-      await pool.query('DELETE FROM usuario WHERE id = $1', [id]);
-      res.status(200).send({ mensagem: 'Usuário excluído com sucesso'});
+      await pool.query('DELETE FROM gossips WHERE id = $1', [id]);
+      res.status(200).send({ mensagem: 'Fofoqueiro excluído com sucesso'});
     } catch (error) {
-      console.error('Erro ao excluir usuário:', error);
-      res.status(500).send('Erro ao excluir usuário');
+      console.error('Erro ao excluir Fofoqueiro:', error);
+      res.status(500).send('Erro ao excluir Fofoqueiro');
     }
   });
 
-  app.get('/usuario/:id', async (req, res) => {
+  app.get('/gossips/:id', async (req, res) => {
     try {
       const { id } = req.params;
-      const result = await pool.query('SELECT * FROM usuario WHERE id = $1', [id]);
+      const result = await pool.query('SELECT * FROM gossips WHERE id = $1', [id]);
       if (result.rowCount === 0) {
-        res.status(404).send({ mensagem: 'Usuário não encontrado' });
+        res.status(404).send({ mensagem: 'Fofoqueiro não encontrado' });
       } else {
         res.json(result.rows[0]);
       }
     } catch (error) {
-      console.error('Erro ao obter usuário por ID:', error);
-      res.status(500).send('Erro ao obter usuário por ID');
+      console.error('Erro ao obter Fofoqueiro por ID:', error);
+      res.status(500).send('Erro ao obter Fofoqueiro por ID');
     }
   });
   
@@ -84,6 +84,6 @@ app.get('/',(req, res) =>{
     res.send('Servidor funcionando')
 })
 
-app.listen(port, ()=>{
-    console.log(`Servidor rodando na porta ${port}`)
+app.listen(PORT, ()=>{
+    console.log(`Servidor rodando na porta ${PORT}`)
 })
