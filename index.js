@@ -30,16 +30,15 @@ app.get('/gossips', async (req, res) => {
 })
 
 //Rota de filtrar os fofoqueiros pelo nome
-app.get("/gossips", (req, res) => {
-  const nome = req.query.nome;
-  const query = `SELECT * FROM heroes WHERE nome LIKE $1`;
-  pool.query(query, [`%${nome}%`], (err, results) => {
-     if (err) {
-       throw err;
-     }
-     res.status(200).json(results.rows);
+app.get("/gossips/nome/:nome", async (req, res) => {
+  const {nome} = req.params;
+  try {
+    const {rows} =  await pool.query('SELECT * FROM gossips WHERE nome = $1', [nome])
+    res.json(rows);
+  } catch (error) {
+    res.status(500).json({message: error.message});
+  }
   });
- });
 
 //Rota de criar os fofoqueiros
 app.post('/gossips', async (req, res) => {
@@ -137,10 +136,6 @@ async function battle(gossips1_id, gossips2_id) {
      throw err;
   }
  }
- 
- battle(gossips1_id, gossips2_id)
-  .then(battleResult => console.log('Batalha registrada:', battleResult))
-  .catch(err => console.error('Erro ao registrar batalha:', err));
 
   //Rota de todas as batalhas
   router.get('/battles', async (req, res) => {
@@ -172,9 +167,6 @@ async function battle(gossips1_id, gossips2_id) {
     }
    });
    
-   app.listen(port, () => {
-    console.log(`Servidor rodando na porta ${port}`);
-   });
 
 app.get('/', (req, res) => {
   res.send('Servidor funcionando')
