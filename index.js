@@ -2,7 +2,7 @@ const express = require('express');
 const { Pool } = require('pg');
 
 const app = express();
-const PORT = 4000;
+const PORT = 4001;
 
 app.use(express.json());
 
@@ -12,15 +12,15 @@ const pool = new Pool({
   host: 'localhost',
   database: 'battleofgossip', // Nome do seu banco de dados
   password: 'ds564', // senha do banco
-  port: 5432, // Porta padrão do PostgreSQL
+  port: 7007 // Porta padrão do PostgreSQL
 });
 
 //Rota dos fofoqueiros
 app.get('/gossips', async (req, res) => {
   try {
     const resultado = await pool.query('SELECT * FROM gossips');
-    res.json({
-      total: resultado.rowCount,
+    res.status(200).json({
+      count: resultado.rowCount,
       gossips: resultado.rows,
     });
   } catch (error) {
@@ -31,14 +31,14 @@ app.get('/gossips', async (req, res) => {
 
 //Rota de filtrar os fofoqueiros pelo nome
 app.get("/gossips/nome/:nome", async (req, res) => {
-  const {nome} = req.params;
+  const { nome } = req.params;
   try {
-    const {rows} =  await pool.query('SELECT * FROM gossips WHERE nome = $1', [nome])
+    const { rows } = await pool.query('SELECT * FROM gossips WHERE nome = $1', [nome])
     res.json(rows);
   } catch (error) {
-    res.status(500).json({message: error.message});
+    res.status(500).json({ message: error.message });
   }
-  });
+});
 
 //Rota de criar os fofoqueiros
 app.post('/gossips', async (req, res) => {
@@ -94,20 +94,19 @@ app.get('/gossips/:id', async (req, res) => {
 });
 
 //Rota de batalha
-app.post('/battle', async (req, res) => {
-  const { gossips1_id, gossips2_id } = req.body;
+app.get('/battle/:gossips1_id/:gossips2_id', async (req, res) => {
+  const { gossips1_id, gossips2_id } = req.params;
 
   try {
     // Aqui você implementaria a lógica de batalha
     // Por exemplo, comparando os atributos dos heróis
-    const vencedor_id = battle(gossips1_id, gossips2_id);
+    const vencedor_id = await battle(gossips1_id, gossips2_id);
 
     // Inserir o resultado da batalha no banco de dados
-    const query = `INSERT INTO battle (gossips1_id, gossips2_id, winner_id) VALUES ($1, $2, $3)`;
-    const values = [gossips1_id, gossips2_id, vencedor_id];
-    await pool.query(query, values);
+    await pool.query(`INSERT INTO battle (gossips1_id, gossips2_id, winner_id) VALUES ($1, $2, $3)`, [gossips1_id, gossips2_id, vencedor_id]);
 
-    res.status(201).send({ message: 'Batalha registrada com sucesso!' });
+    const { rows } = await pool.query('SELECT * FROM gossips WHERE id = $1', [vencedor_id]);
+    res.status(201).send({ winner: rows[0], message: 'Batalha registrada com sucesso!' });
   } catch (error) {
     console.error(error);
     res.status(500).send({ message: 'Erro ao registrar a batalha.' });
@@ -116,57 +115,53 @@ app.post('/battle', async (req, res) => {
 
 // Função para saber o vencedor 
 async function battle(gossips1_id, gossips2_id) {
-  // Aqui você pode implementar sua lógica de batalha
-  // Por exemplo, determinar o vencedor com base em atributos
-  const winner = gossips1_id.level_of_gossip > gossips2_id.level_of_gossip ? gossips1_id : gossips2_id;
- 
-  // Registre a batalha no banco de dados
-  const query = `
-     INSERT INTO battles (gossips1_id, gossips2_id, winner_id)
-     VALUES ($1, $2, $3)
-     RETURNING *;
-  `;
-  const values = [gossips1_id.id, gossips2_id.id, winner.id];
- 
-  try {
-     const result = await pool.query(query, values);
-     return result.rows[0];
-  } catch (err) {
-     console.error(err);
-     throw err;
+  let gossip1 = await pool.query('SELECT * FROM gossips WHERE id = $1', [gossips1_id]);
+  let gossip2 = await pool.query('SELECT * FROM gossips WHERE id = $1', [gossips2_id]);
+  gossip1 = gossip1.rows[0];
+  gossip2 = gossip2.rows[0];
+const nivel1 = gossip1.level_of_gossip;
+const nivel2 = gossip2.level_of_gossip
+console.log(gossip1)
+  console.log(nivel1)
+
+   if (nivel1 > nivel2) {
+    return gossips1_id;
+   } else if (nivel1 < nivel2) {
+    return gossips2_id;
+  } else {
+    if (gossip1.hp > gossip2.hp) {
+      return gossips1_id;
+    } else if (gossip1.hp < gossip2.hp) {
+      return gossips2_id;
+    } else {
+      return gossips1_id;
+    }
   }
- }
+}
 
-  //Rota de todas as batalhas
-  router.get('/battles', async (req, res) => {
-    try {
-       const result = await pool.query('SELECT * FROM battles');
-       res.status(200).json(result.rows);
-    } catch (err) {
-       console.error(err);
-       res.status(500).json({ error: 'Erro ao buscar o histórico de batalhas' });
-    }
-   });
 
-   app.get('/battles/detailed', async (req, res) => {
-    try {
-       const result = await pool.query(`
-         SELECT battles.id, battles.gossips1_id, battles.gossips2_id, battles.winner_id,
-         gossips1_id.nome AS hero1_nome, gossips1_id.level_of_gossip AS gossips1_id_level_of_gossip, gossips1_id.elenco AS  gossips1_id_elenco, gossips1_id.hp AS  gossips1_id_hp,  gossips1_id.popularity AS  gossips1_id_popularity,
-         gossips2_id.nome AS hero2_nome, gossips2_id.level_of_gossip AS gossips2_id_level_of_gossip, gossips2_id.elenco AS  gossips2_id_elenco, gossips2_id.hp AS gossips2_id_hp, gossips2_id.popularity AS gossips2_id_popularity
-         FROM battles
-         JOIN gossips1_id ON battles.gossips1_id = gossips1_id.id
-         JOIN gossips2_id AS gossips2_id ON battles.gossips2_id = gossips2_id.id
-         ORDER BY battles.id ASC;
-       `);
-   
-       res.status(200).json(result.rows);
-    } catch (error) {
-       console.error(error);
-       res.status(500).json({ error: 'Erro ao buscar o histórico de batalhas' });
-    }
-   });
-   
+
+app.get('/battles/gossips', async (req, res) => {
+  try {
+    const result = await pool.query(`SELECT battle.id, battle.gossips1_id, battle.gossips2_id, battle.winner_id, gossips.nome, gossips.level_of_gossip, gossips.elenco, gossips.hp, gossips.popularity FROM gossips INNER JOIN battle ON battle.winner_id = gossips.id`);
+
+    res.status(200).json(result.rows);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Erro ao buscar o histórico de batalhas' });
+  }
+});
+
+app.get('/gossips/popularity/:popularity', async (req, res) => {
+  const { popularity } = req.params;
+  try {
+    const { rows } = await pool.query('SELECT * FROM gossips WHERE popularity = $1', [popularity])
+    res.json(rows);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 
 app.get('/', (req, res) => {
   res.send('Servidor funcionando')
